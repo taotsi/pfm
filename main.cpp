@@ -5,5 +5,8 @@ int main()
 {
     std::string path = "1.pfm";
     pfm::PFM pfm_file(path);
+    pfm_file.SaveAsPng("raster");
+    
+    std::cout << "exit!\n"; 
     return 0;
 }
