@@ -20,12 +20,12 @@ class PFM{
     using Grid3D = std::vector< std::vector< std::vector<T> > >;
     
 private:
-    // Data_[width][height]
+    // Data_[y][x]
     Grid2D<float> Data_;
     int height_ = 0;
     int width_ = 0;
     float endianness_ = -1.0;
-    
+
 public:
 
     PFM(std::string path) {
@@ -33,19 +33,19 @@ public:
     }
     PFM(float* data, int height, int width)
         : height_(height), width_(width) {
-        
+
     }
-    
+
     Grid2D<float>* GetImageData() {
         return &Data_;
     }
-    
+
     bool isLittleEndian() {
         int intval = 1;
         unsigned char *uval = reinterpret_cast<unsigned char *>(&intval);
         return uval[0] == 1;
     }
-    
+
     Grid2D<float>* ReadPfmFile(std::string path) {
         Data_.clear();
         std::ifstream file(path, std::ios::in | std::ios::binary);
@@ -63,7 +63,7 @@ public:
                 getline(file, line);
                 std::istringstream iss_e(line);
                 iss_e >> endianness_;
-                
+
                 // get data buffer
                 file.seekg(0, file.end);
                 int length = file.tellg();
@@ -72,7 +72,7 @@ public:
                 std::vector<char> buffer((std::istreambuf_iterator<char>(file)),
                     (std::istreambuf_iterator<char>()));
                 file.close();
-                
+
                 //get chars back into float
                 union {
                     float f;
@@ -89,35 +89,35 @@ public:
                             Data_[h].push_back(pixel.f);
                         }
                     }
-                    
+
                 } else {
                     // TODO: deal with big endianness
                     std::cout << "TODO: NOT little endian!!!" << std::endl;
-                }    
+                }
             }
         } else {
             std::cout << "FAILED to open the file!!!" <<std::endl;
         }
         return &Data_;
     }
-    
-    void SaveAsPng(std::string path, float max = 100.f) {
+
+    void SaveAsPpm(std::string path, float max_dist = 100.f, uint8_t* color) {
         std::vector<uint8_t> data_u8;
-        Clamp(max);
+        Clamp(max_dist);
         for (int h = 0; h < height_; h++) {
             for (int w = 0; w < width_; w++) {
-                data_u8.push_back(static_cast<uint8_t>(Data_[h][w]));
-            }
+                
+	    }
         }
         std::ofstream file(path + ".png", std::ios::binary);
         file.write(reinterpret_cast<const char*>(data_u8.data()), data_u8.size());
         file.close();
     }
-    
+
     void SaveAsPfm(std::string path) {
-        
+
     }
-    
+
     void Clamp(float max = 100.f) {
         for (int h = 0; h < height_; h++) {
             for (int w = 0; w < width_; w++) {
@@ -127,30 +127,30 @@ public:
             }
         }
     }
-    
+
     float GetPixel(int y_pos, int x_pos) {
         if(y_pos >= height_ | x_pos >=  width_) {
             std::cout << "NO such a pixel in a (" << width_ << ", " << height_ << ") map!" << std::endl;
-            return 0; 
+            return 0;
         }
         return Data_[y_pos][x_pos];
     }
-    
+
     std::vector<float> GetRow(int y_pos) {
         std::vector<float> row;
         if (y_pos >= height_) {
-            std::cout << "No such a row, height = " << height_ 
+            std::cout << "No such a row, height = " << height_
                 << ", return the last row(top) instead!" << std::endl;
             y_pos = height_;
             std::cout << y_pos << std::endl;
         }
         return row = Data_[y_pos];
     }
-    
+
     std::vector<float> GetCol(int x_pos) {
         std::vector<float> col;
         if (x_pos >= width_) {
-            std::cout << "No such a column, width = " << width_ 
+            std::cout << "No such a column, width = " << width_
                 << ", return the last column(right) instead!" << std::endl;
             x_pos = width_;
         }
@@ -159,11 +159,11 @@ public:
         }
         return col;
     }
-    
+
     Grid2D<float> GetCols(int x_pos, int d) {
         Grid2D<float> cols;
         if (x_pos >= width_) {
-            std::cout << "No such a column, width = " << width_ 
+            std::cout << "No such a column, width = " << width_
                 << ", return the last column(right) instead!" << std::endl;
                 cols.push_back(GetCol(width_));
                 return cols;
@@ -177,7 +177,7 @@ public:
         }
         return cols;
     }
-    
+
     int GetHeight() {
         return height_;
     }
