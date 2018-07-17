@@ -101,16 +101,26 @@ public:
         return &Data_;
     }
 
-    void SaveAsPpm(std::string path, float max_dist = 100.f, uint8_t* color) {
-        std::vector<uint8_t> data_u8;
-        Clamp(max_dist);
-        for (int h = 0; h < height_; h++) {
+    void SaveAsPpm(std::string path, float max_dist = 100.f) {
+        std::ofstream file(path + ".ppm", std::ios::app);
+        int max_pix_val = 255;
+        file << "P3\n" << width_ << " " << height_ << "\n" << max_pix_val << "\n";
+        //R,G,B
+        uint8_t pixel[3];
+        float max = max_dist;
+        Clamp(max);
+        // pfm is up-side-down, while ppm is not
+        for (int h = height_ - 1; h >= 0; h--) {
             for (int w = 0; w < width_; w++) {
-                
-	    }
+                pixel[0] = static_cast<int>(Data_[h][w] * max_pix_val / max);
+                pixel[1] = pixel[2] = pixel[0];
+                file << std::setw(3) << std::to_string(pixel[0]) << " "
+                    << std::setw(3) << std::to_string(pixel[1]) << " "
+                    << std::setw(3) << std::to_string(pixel[2]) << " ";
+	        }
+            file << "\n";
         }
-        std::ofstream file(path + ".png", std::ios::binary);
-        file.write(reinterpret_cast<const char*>(data_u8.data()), data_u8.size());
+        
         file.close();
     }
 
@@ -184,6 +194,14 @@ public:
     int GetWidth() {
         return width_;
     }
+    
+#ifdef INCLUDE_BITMAP_IMAGE_HPP
+
+    void SaveAsBmp(std::string path, float max_dist = 100.f) {
+        
+    }
+
+#endif // INCLUDE_BITMAP_IMAGE_HPP
 }; // class PFM
 } // namespace pfm
 
