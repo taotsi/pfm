@@ -1,2 +1,5 @@
-main.exe
-main.obj
+*.exe
+*.obj
+*.pfm
+*.ppm
+data/

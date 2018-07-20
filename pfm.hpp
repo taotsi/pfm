@@ -7,53 +7,42 @@
 #include <iomanip>
 #include <sstream>
 #include <iterator>
-#include "nlohmann/json.hpp"
+#include <cstdio>
 
 namespace pfm {
-
-using json = nlohmann::json;
-
 class PFM{
     template <typename T>
     using Grid2D = std::vector< std::vector<T> >;
-    template <typename T>
-    using Grid3D = std::vector< std::vector< std::vector<T> > >;
-    
-private:
-    // Data_[y][x]
+
+public:
     Grid2D<float> Data_;
+private:
     int height_ = 0;
     int width_ = 0;
     float endianness_ = -1.0;
 
 public:
-
     PFM(std::string path) {
         ReadPfmFile(path);
     }
+    
+    // TODO: unfinished
     PFM(float* data, int height, int width)
         : height_(height), width_(width) {
 
     }
 
-    Grid2D<float>* GetImageData() {
-        return &Data_;
-    }
-
-    bool isLittleEndian() {
-        int intval = 1;
-        unsigned char *uval = reinterpret_cast<unsigned char *>(&intval);
-        return uval[0] == 1;
-    }
-
     Grid2D<float>* ReadPfmFile(std::string path) {
         Data_.clear();
         std::ifstream file(path, std::ios::in | std::ios::binary);
-        if (file.is_open()) {
+        if (!file.is_open()) {
+            std::cout << "FAILED to open the file!!!" <<std::endl;
+        } else {
+            
             // get information
             std::string line;
             getline(file, line);
-            if (!(line == "Pf" | line == "PF")) {
+            if (!((line == "Pf") || (line == "PF"))) {
                 std::cout << "NOT pfm format!!!" <<std::endl;
                 file.close();
             } else {
@@ -79,7 +68,10 @@ public:
                     char u8[sizeof(float)];
                 } pixel;
                 std::vector<float> temp;
-                if (endianness_ == -1.0f) {
+                if (endianness_ != -1.0f) {
+                    // TODO: deal with big endianness
+                    std::cout << "TODO: NOT little endian!!!" << std::endl;
+                } else {
                     for (int h = 0; h < height_; h++) {
                         Data_.push_back(temp);
                         for (int w = 0; w < width_; w++) {
@@ -90,29 +82,26 @@ public:
                         }
                     }
 
-                } else {
-                    // TODO: deal with big endianness
-                    std::cout << "TODO: NOT little endian!!!" << std::endl;
                 }
             }
-        } else {
-            std::cout << "FAILED to open the file!!!" <<std::endl;
         }
         return &Data_;
     }
 
-    void SaveAsPpm(std::string path, float max_dist = 100.f) {
+    void SaveAsPpm(std::string path, float max_dist = 255.f) {
+        if (RemoveIfExists(path + ".ppm")) {
+            std::cout << "File" + path + ".ppm exists already! New data will be appended." << std::endl;
+        }
         std::ofstream file(path + ".ppm", std::ios::app);
         int max_pix_val = 255;
         file << "P3\n" << width_ << " " << height_ << "\n" << max_pix_val << "\n";
         //R,G,B
         uint8_t pixel[3];
-        float max = max_dist;
-        Clamp(max);
+        Clamp(max_dist);
         // pfm is up-side-down, while ppm is not
         for (int h = height_ - 1; h >= 0; h--) {
             for (int w = 0; w < width_; w++) {
-                pixel[0] = static_cast<int>(Data_[h][w] * max_pix_val / max);
+                pixel[0] = static_cast<int>(Data_[h][w] * max_pix_val / max_dist);
                 pixel[1] = pixel[2] = pixel[0];
                 file << std::setw(3) << std::to_string(pixel[0]) << " "
                     << std::setw(3) << std::to_string(pixel[1]) << " "
@@ -120,15 +109,23 @@ public:
 	        }
             file << "\n";
         }
-        
         file.close();
     }
+    
+#ifdef INCLUDE_BITMAP_IMAGE_HPP
+    // TODO: unfinished
+    void SaveAsBmp(std::string path, float max_dist = 255.f) {
+        
+    }
 
+#endif // INCLUDE_BITMAP_IMAGE_HPP
+    
+    // TODO: unfinished
     void SaveAsPfm(std::string path) {
 
     }
 
-    void Clamp(float max = 100.f) {
+    void Clamp(float max = 255.f) {
         for (int h = 0; h < height_; h++) {
             for (int w = 0; w < width_; w++) {
                 if (Data_[h][w] > max) {
@@ -139,8 +136,9 @@ public:
     }
 
     float GetPixel(int y_pos, int x_pos) {
-        if(y_pos >= height_ | x_pos >=  width_) {
-            std::cout << "NO such a pixel in a (" << width_ << ", " << height_ << ") map!" << std::endl;
+        if((y_pos >= height_) || (x_pos >=  width_)) {
+            std::cout << "NO such a pixel in a (" << width_ << ", " 
+                << height_ << ") map!" << std::endl;
             return 0;
         }
         return Data_[y_pos][x_pos];
@@ -195,13 +193,26 @@ public:
         return width_;
     }
     
-#ifdef INCLUDE_BITMAP_IMAGE_HPP
 
-    void SaveAsBmp(std::string path, float max_dist = 100.f) {
-        
+
+private:
+    bool isLittleEndian() {
+        int intval = 1;
+        unsigned char *uval = reinterpret_cast<unsigned char *>(&intval);
+        return uval[0] == 1;
     }
-
-#endif // INCLUDE_BITMAP_IMAGE_HPP
+    
+    bool RemoveIfExists(std::string filename) {
+        std::fstream file(filename);
+        if(file.is_open()) {
+            file.close();
+            std::cout << "File" + filename + "exists already! All of its existing data will be overwritten!" << std::endl;
+            return std::remove(filename.c_str());
+        } else {
+            file.close();
+            return 0;
+        }
+    }
 }; // class PFM
 } // namespace pfm
 
